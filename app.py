@@ -1,10 +1,8 @@
 import streamlit as st
-import sounddevice as sd
 import numpy as np
-import scipy.io.wavfile as wav
-import tempfile
 import librosa
 import joblib
+from scipy.io import wavfile
 
 # ==========================
 # Load model
@@ -15,14 +13,8 @@ scaler = joblib.load("scaler.pkl")     # scaler fitur jika pakai
 # ==========================
 # Fungsi bantu
 # ==========================
-def record_audio(duration=3, fs=44100):
-    st.info(f"Merekam suara selama {duration} detik...")
-    audio = sd.rec(int(duration * fs), samplerate=fs, channels=1, dtype='float32')
-    sd.wait()
-    return audio.flatten(), fs
-
 def extract_features(y, sr):
-    # Ekstraksi MFCC sebagai contoha
+    # Ekstraksi MFCC
     mfccs = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
     mfccs_mean = np.mean(mfccs.T, axis=0)
     return mfccs_mean.reshape(1, -1)
@@ -30,20 +22,24 @@ def extract_features(y, sr):
 # ==========================
 # Streamlit UI
 # ==========================
-st.title("🎤 Klasifikasi Suara")
-duration = 1
+st.title("Klasifikasi Suara")
+st.text("DI sini saya menggunakan upload file, dikarenakan saat di deploy tidak bisa menggunakan mic")
 
-if st.button("Mulai Rekam"):
-    audio, sr = record_audio(duration)
+uploaded_file = st.file_uploader("Upload file audio (WAV)", type=["wav"])
+
+if uploaded_file is not None:
+    # Baca audio
+    sr, audio = wavfile.read(uploaded_file)
     
-    # Simpan sementara
-    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmpfile:
-        wav.write(tmpfile.name, sr, (audio * 32767).astype(np.int16))
-        st.audio(tmpfile.name, format="audio/wav")
-        
-        # Ekstrak fitur & prediksi
-        features = extract_features(audio, sr)
-        features_scaled = scaler.transform(features)  # jika pakai scaler
-        prediction = model.predict(features_scaled)[0]
-        
-        st.success(f"Hasil prediksi: {prediction}")
+    # Jika stereo, ubah jadi mono
+    if len(audio.shape) > 1:
+        audio = np.mean(audio, axis=1)
+    
+    st.audio(uploaded_file, format="audio/wav")
+    
+    # Ekstrak fitur & prediksi
+    features = extract_features(audio.astype(float), sr)
+    features_scaled = scaler.transform(features)  # jika pakai scaler
+    prediction = model.predict(features_scaled)[0]
+    
+    st.success(f"Hasil prediksi: {prediction}")
