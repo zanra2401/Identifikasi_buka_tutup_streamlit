@@ -29,7 +29,7 @@ uploaded_file = st.file_uploader("Upload file audio (WAV)", type=["wav"])
 
 if uploaded_file is not None:
     # Baca audio
-    sr, audio = wavfile.read(uploaded_file)
+    audio, sr = librosa.load(uploaded_file, sr=16000)
     
     # Jika stereo, ubah jadi mono
     if len(audio.shape) > 1:
