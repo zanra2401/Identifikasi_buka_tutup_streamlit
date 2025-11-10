@@ -5,3 +5,4 @@ numpy
 scikit-learn
 librosa
 sounddevice
+audio_recorder_streamlit
